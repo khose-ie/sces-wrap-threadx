@@ -30,12 +30,23 @@ static scesOsState_t os_state = SCES_OS_STATE_INITIALIZING;
 
 /// @brief OS stack byte pool
 /// @details This byte pool is used for allocating stacks for tasks and other OS-related memory.
-static TX_BYTE_POOL os_stack;
+///     If the EX_OS_STACK_POOL macro is not defined, a static byte pool is created here.
+#ifndef EX_OS_STACK_POOL
+#define EX_OS_STACK_POOL (os_stack)
+static TX_BYTE_POOL EX_OS_STACK_POOL;
+#else  // OS_STACK_POOL
+extern TX_BYTE_POOL EX_OS_STACK_POOL;
+#endif // OS_STACK_POOL
 
 /// @brief OS stack memory zone
 /// @details This static array serves as the memory area for the OS stack byte pool.
-/// It is sized according to SCES_OS_STACK_SIZE.
-static uint8_t os_stack_zone[SCES_OS_STACK_SIZE];
+///     If the EX_OS_STACK_MEM_ZONE macro is not defined, a static array is created here.
+#ifndef EX_OS_STACK_MEM_ZONE
+#define EX_OS_STACK_MEM_ZONE (os_stack_zone)
+static uint8_t EX_OS_STACK_MEM_ZONE[SCES_OS_STACK_SIZE];
+#else  // OS_STACK_MEM_ZONE
+extern uint8_t EX_OS_STACK_MEM_ZONE[SCES_OS_STACK_SIZE];
+#endif // OS_STACK_MEM_ZONE
 
 /// @brief Allocate memory from the OS stack byte pool
 /// @details This function allocates a block of memory of the specified size
@@ -57,7 +68,7 @@ static uint8_t* mem_alloc(uint32_t size)
         alloc_size = TX_BYTE_POOL_MIN;
     }
 
-    if (tx_byte_allocate(&os_stack, (VOID**)&mem, alloc_size, TX_NO_WAIT) != TX_SUCCESS)
+    if (tx_byte_allocate(&EX_OS_STACK_POOL, (VOID**)&mem, alloc_size, TX_NO_WAIT) != TX_SUCCESS)
     {
         return NULL;
     }
@@ -130,28 +141,29 @@ static scesTaskPriority_t convert_threadx_task_priority(UINT threadx_priority)
     return (scesTaskPriority_t)(SCES_TASK_PRIORITY_MAX - threadx_priority);
 }
 
-/// @brief Application definition function required by ThreadX
-/// @details This function is called by ThreadX during initialization to define
-///          the application-specific resources such as memory pools and stacks.
-/// @param first_unused_memory Pointer to the first unused memory location
-VOID tx_application_define(VOID* first_unused_memory)
+/// @brief Initialize the OS abstraction layer
+/// @details This function initializes the OS abstraction layer by creating
+///          the OS stack byte pool and setting the initial OS state.
+/// @return SCES_RET_OK on success, error code otherwise
+scesRetVal_t sces_os_initialize(void)
 {
-    memset(os_stack_zone, 0, sizeof(os_stack_zone));
+    memset(EX_OS_STACK_MEM_ZONE, 0, sizeof(EX_OS_STACK_MEM_ZONE));
 
-    if (sizeof(os_stack_zone) < TX_BYTE_POOL_MIN)
+    if (sizeof(EX_OS_STACK_MEM_ZONE) < TX_BYTE_POOL_MIN)
     {
         os_state = SCES_OS_STATE_ERR_INIT_MEM;
-        return;
+        return SCES_RET_ERR_PARAM;
     }
 
-    if (tx_byte_pool_create(&os_stack, "OS Stack", os_stack_zone, sizeof(os_stack_zone)) !=
-        TX_SUCCESS)
+    if (tx_byte_pool_create(&EX_OS_STACK_POOL, "OS Stack", EX_OS_STACK_MEM_ZONE,
+                            sizeof(EX_OS_STACK_MEM_ZONE)) != TX_SUCCESS)
     {
         os_state = SCES_OS_STATE_ERR_INIT_MEM;
-        return;
+        return SCES_RET_ERR_MEM_ALLOC_FAILURE;
     }
 
     os_state = SCES_OS_STATE_RUNNING;
+    return SCES_RET_OK;
 }
 
 /// @brief Get the current state of the OS
