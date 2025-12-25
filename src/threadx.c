@@ -1492,7 +1492,12 @@ scesRetVal_t sces_task_suspend(scesTaskHandle_t task)
         return SCES_RET_ERR_INSTANCE_INVALID;
     }
 
-    return tx_thread_suspend((TX_THREAD*)task);
+    if (tx_thread_suspend((TX_THREAD*)task) != TX_SUCCESS)
+    {
+        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+    }
+
+    return SCES_RET_OK;
 }
 
 /// @brief  Resume a suspended task
@@ -1510,7 +1515,12 @@ scesRetVal_t sces_task_resume(scesTaskHandle_t task)
         return SCES_RET_ERR_INSTANCE_INVALID;
     }
 
-    return tx_thread_resume((TX_THREAD*)task);
+    if (tx_thread_resume((TX_THREAD*)task) != TX_SUCCESS)
+    {
+        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+    }
+
+    return SCES_RET_OK;
 }
 
 /// @brief  Create a new timer
