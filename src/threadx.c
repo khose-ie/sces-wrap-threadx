@@ -7,8 +7,8 @@
 /// @author  Khose-ie<khose-ie@outlook.com>
 /// @date    2024-06-10
 
+#include <sces-conf.h>
 #include <sces-os.h>
-#include <sces-threadx.h>
 #include <string.h>
 #include <tx_api.h>
 #include <tx_block_pool.h>
@@ -19,6 +19,54 @@
 #include <tx_semaphore.h>
 #include <tx_thread.h>
 #include <tx_timer.h>
+
+/// @brief Size of the OS memory pool 1 blocks
+/// @details This constant defines the size (in bytes) of each memory block
+#ifndef SCES_OS_MEM_POOL_BKSZ_1
+#define SCES_OS_MEM_POOL_BKSZ_1 (0)
+#endif // SCES_OS_MEM_POOL_BKSZ_1
+
+/// @brief Count of the OS memory pool 1 blocks
+/// @details This constant defines the number of memory blocks in the OS memory pool 1.
+#ifndef SCES_OS_MEM_POOL_BKCT_1
+#define SCES_OS_MEM_POOL_BKCT_1 (0)
+#endif // SCES_OS_MEM_POOL_BKCT_1
+
+/// @brief Size of the OS memory pool 2 blocks
+/// @details This constant defines the size (in bytes) of each memory block
+#ifndef SCES_OS_MEM_POOL_BKSZ_2
+#define SCES_OS_MEM_POOL_BKSZ_2 (0)
+#endif // SCES_OS_MEM_POOL_BKSZ_2
+
+/// @brief Count of the OS memory pool 2 blocks
+/// @details This constant defines the number of memory blocks in the OS memory pool 2.
+#ifndef SCES_OS_MEM_POOL_BKCT_2
+#define SCES_OS_MEM_POOL_BKCT_2 (0)
+#endif // SCES_OS_MEM_POOL_BKCT_2
+
+/// @brief Size of the OS memory pool 3 blocks
+/// @details This constant defines the size (in bytes) of each memory block
+#ifndef SCES_OS_MEM_POOL_BKSZ_3
+#define SCES_OS_MEM_POOL_BKSZ_3 (0)
+#endif // SCES_OS_MEM_POOL_BKSZ_3
+
+/// @brief Count of the OS memory pool 3 blocks
+/// @details This constant defines the number of memory blocks in the OS memory pool 3.
+#ifndef SCES_OS_MEM_POOL_BKCT_3
+#define SCES_OS_MEM_POOL_BKCT_3 (0)
+#endif // SCES_OS_MEM_POOL_BKCT_3
+
+/// @brief Size of the OS memory pool 4 blocks
+/// @details This constant defines the size (in bytes) of each memory block
+#ifndef SCES_OS_MEM_POOL_BKSZ_4
+#define SCES_OS_MEM_POOL_BKSZ_4 (0)
+#endif // SCES_OS_MEM_POOL_BKSZ_4
+
+/// @brief Count of the OS memory pool 4 blocks
+/// @details This constant defines the number of memory blocks in the OS memory pool 4.
+#ifndef SCES_OS_MEM_POOL_BKCT_4
+#define SCES_OS_MEM_POOL_BKCT_4 (0)
+#endif // SCES_OS_MEM_POOL_BKCT_4
 
 /// @brief Default time slice for tasks
 /// @details This constant defines the default time slice (in ticks) for tasks.
@@ -31,28 +79,42 @@ static scesOsState_t os_state = SCES_OS_STATE_INITIALIZING;
 /// @brief OS stack byte pool
 /// @details This byte pool is used for allocating stacks for tasks and other OS-related memory.
 ///     If the EX_OS_STACK_POOL macro is not defined, a static byte pool is created here.
-#ifndef EX_OS_STACK_POOL
-#define EX_OS_STACK_POOL (os_stack)
-static TX_BYTE_POOL EX_OS_STACK_POOL;
-#else  // OS_STACK_POOL
-extern TX_BYTE_POOL EX_OS_STACK_POOL;
-#endif // OS_STACK_POOL
+#ifndef SCES_OS_EX_STACK_POOL
+#define OS_STACK_POOL (os_stack)
+static TX_BYTE_POOL OS_STACK_POOL;
+#else // SCES_OS_EX_STACK_POOL
+#define OS_STACK_POOL SCES_OS_EX_STACK_POOL
+extern TX_BYTE_POOL OS_STACK_POOL;
+#endif // SCES_OS_EX_STACK_POOL
 
 /// @brief OS stack memory zone
 /// @details This static array serves as the memory area for the OS stack byte pool.
 ///     If the EX_OS_STACK_MEM_ZONE macro is not defined, a static array is created here.
-#ifndef EX_OS_STACK_MEM_ZONE
-#define EX_OS_STACK_MEM_ZONE (os_stack_zone)
-static uint8_t EX_OS_STACK_MEM_ZONE[SCES_OS_STACK_SIZE];
-#else  // OS_STACK_MEM_ZONE
-extern uint8_t EX_OS_STACK_MEM_ZONE[SCES_OS_STACK_SIZE];
-#endif // OS_STACK_MEM_ZONE
+#ifndef SCES_OS_EX_STACK_ZONE
+#define OS_STACK_MEM_ZONE (os_stack_zone)
+static uint8_t OS_STACK_MEM_ZONE[SCES_OS_STACK_SIZE];
+#else // SCES_OS_EX_STACK_ZONE
+#define OS_STACK_MEM_ZONE SCES_OS_EX_STACK_ZONE
+extern uint8_t OS_STACK_MEM_ZONE[SCES_OS_STACK_SIZE];
+#endif // SCES_OS_EX_STACK_ZONE
 
 /// @brief Function pointer for task main function
-static void (*task_main)(void*)      = NULL;
+static void (*task_main)(void*) = NULL;
 
 /// @brief Function pointer for timer callback function
 static void (*timer_callback)(void*) = NULL;
+
+/// @brief Handles for OS memory pool 1
+static scesMemPoolHandle_t os_mem_pool1 = NULL;
+
+/// @brief Handles for OS memory pool 2
+static scesMemPoolHandle_t os_mem_pool2 = NULL;
+
+/// @brief Handles for OS memory pool 3
+static scesMemPoolHandle_t os_mem_pool3 = NULL;
+
+/// @brief Handles for OS memory pool 4
+static scesMemPoolHandle_t os_mem_pool4 = NULL;
 
 /// @brief ThreadX task main wrapper
 /// @details This function serves as the entry point for ThreadX tasks.
@@ -96,7 +158,7 @@ static uint8_t* mem_alloc(uint32_t size)
         alloc_size = TX_BYTE_POOL_MIN;
     }
 
-    if (tx_byte_allocate(&EX_OS_STACK_POOL, (VOID**)&mem, alloc_size, TX_NO_WAIT) != TX_SUCCESS)
+    if (tx_byte_allocate(&OS_STACK_POOL, (VOID**)&mem, alloc_size, TX_NO_WAIT) != TX_SUCCESS)
     {
         return NULL;
     }
@@ -175,22 +237,83 @@ static scesTaskPriority_t convert_threadx_task_priority(UINT threadx_priority)
 /// @return SCES_RET_OK on success, error code otherwise
 scesRetVal_t sces_os_initialize(void)
 {
-    memset(EX_OS_STACK_MEM_ZONE, 0, sizeof(EX_OS_STACK_MEM_ZONE));
+    memset(OS_STACK_MEM_ZONE, 0, SCES_OS_STACK_SIZE);
 
-    if (sizeof(EX_OS_STACK_MEM_ZONE) < TX_BYTE_POOL_MIN)
+    if (SCES_OS_STACK_SIZE < TX_BYTE_POOL_MIN)
     {
         os_state = SCES_OS_STATE_ERR_INIT_MEM;
         return SCES_RET_ERR_PARAM;
     }
 
-    if (tx_byte_pool_create(&EX_OS_STACK_POOL, "OS Stack", EX_OS_STACK_MEM_ZONE,
-                            sizeof(EX_OS_STACK_MEM_ZONE)) != TX_SUCCESS)
+    if (tx_byte_pool_create(&OS_STACK_POOL, "OS Stack", OS_STACK_MEM_ZONE, SCES_OS_STACK_SIZE) !=
+        TX_SUCCESS)
     {
         os_state = SCES_OS_STATE_ERR_INIT_MEM;
         return SCES_RET_ERR_MEM_ALLOC_FAILURE;
     }
 
     os_state = SCES_OS_STATE_RUNNING;
+    return SCES_RET_OK;
+}
+
+/// @brief Initialize the OS memory pool
+/// @details This function initializes the OS memory pool used for dynamic
+///          memory allocations within the OS abstraction layer.
+/// @return SCES_RET_OK on success, error code otherwise
+scesRetVal_t sces_os_initialize_mem_pool(void)
+{
+#if SCES_OS_MEM_POOL_BKSZ_1 != 0 && SCES_OS_MEM_POOL_BKCT_1 != 0
+
+    static uint8_t mem_pool_zone1[SCES_OS_MEM_POOL_BKSZ_1 * SCES_OS_MEM_POOL_BKCT_1];
+    memset(mem_pool_zone1, 0, sizeof(mem_pool_zone1));
+    os_mem_pool1 = sces_mem_pool_create_static("OS MemPool 1", mem_pool_zone1,
+                                               SCES_OS_MEM_POOL_BKSZ_1, SCES_OS_MEM_POOL_BKCT_1);
+    if (os_mem_pool1 == NULL)
+    {
+        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+    }
+
+#endif // SCES_OS_MEM_POOL_BKSZ_1 != 0 && SCES_OS_MEM_POOL_BKCT_1 != 0
+
+#if SCES_OS_MEM_POOL_BKSZ_2 != 0 && SCES_OS_MEM_POOL_BKCT_2 != 0
+
+    static uint8_t mem_pool_zone2[SCES_OS_MEM_POOL_BKSZ_2 * SCES_OS_MEM_POOL_BKCT_2];
+    memset(mem_pool_zone2, 0, sizeof(mem_pool_zone2));
+    os_mem_pool2 = sces_mem_pool_create_static("OS MemPool 2", mem_pool_zone2,
+                                               SCES_OS_MEM_POOL_BKSZ_2, SCES_OS_MEM_POOL_BKCT_2);
+    if (os_mem_pool2 == NULL)
+    {
+        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+    }
+
+#endif // SCES_OS_MEM_POOL_BKSZ_2 != 0 && SCES_OS_MEM_POOL_BKCT_2 != 0
+
+#if SCES_OS_MEM_POOL_BKSZ_3 != 0 && SCES_OS_MEM_POOL_BKCT_3 != 0
+
+    static uint8_t mem_pool_zone3[SCES_OS_MEM_POOL_BKSZ_3 * SCES_OS_MEM_POOL_BKCT_3];
+    memset(mem_pool_zone3, 0, sizeof(mem_pool_zone3));
+    os_mem_pool3 = sces_mem_pool_create_static("OS MemPool 3", mem_pool_zone3,
+                                               SCES_OS_MEM_POOL_BKSZ_3, SCES_OS_MEM_POOL_BKCT_3);
+    if (os_mem_pool3 == NULL)
+    {
+        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+    }
+
+#endif // SCES_OS_MEM_POOL_BKSZ_3 != 0 && SCES_OS_MEM_POOL_BKCT_3 != 0
+
+#if SCES_OS_MEM_POOL_BKSZ_4 != 0 && SCES_OS_MEM_POOL_BKCT_4 != 0
+
+    static uint8_t mem_pool_zone4[SCES_OS_MEM_POOL_BKSZ_4 * SCES_OS_MEM_POOL_BKCT_4];
+    memset(mem_pool_zone4, 0, sizeof(mem_pool_zone4));
+    os_mem_pool4 = sces_mem_pool_create_static("OS MemPool 4", mem_pool_zone4,
+                                               SCES_OS_MEM_POOL_BKSZ_4, SCES_OS_MEM_POOL_BKCT_4);
+    if (os_mem_pool4 == NULL)
+    {
+        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+    }
+
+#endif // SCES_OS_MEM_POOL_BKSZ_4 != 0 && SCES_OS_MEM_POOL_BKCT_4 != 0
+
     return SCES_RET_OK;
 }
 
@@ -285,6 +408,63 @@ void sces_os_exit_task(void)
 void sces_os_exit_task_static(void)
 {
     sces_task_delete_static(sces_os_current_task());
+}
+
+/// @brief  Allocate memory from the OS memory pool
+/// @details This function allocates a block of memory of the specified size from the OS memory
+///          pool.
+///.         The os implementation will choice the best fit memory block from the pool.
+/// @param size Size of memory want to allocate in bytes
+/// @return Pointer to the allocated memory block, or NULL on failure
+void* sces_os_malloc(uint32_t size)
+{
+    void* ptr = NULL;
+
+    if ((os_mem_pool1 != NULL) && (size <= SCES_OS_MEM_POOL_BKSZ_1))
+    {
+        ptr = sces_mem_pool_alloc(os_mem_pool1, size);
+    }
+    else if ((os_mem_pool2 != NULL) && (size <= SCES_OS_MEM_POOL_BKSZ_2))
+    {
+        ptr = sces_mem_pool_alloc(os_mem_pool2, size);
+    }
+    else if ((os_mem_pool3 != NULL) && (size <= SCES_OS_MEM_POOL_BKSZ_3))
+    {
+        ptr = sces_mem_pool_alloc(os_mem_pool3, size);
+    }
+    else if ((os_mem_pool4 != NULL) && (size <= SCES_OS_MEM_POOL_BKSZ_4))
+    {
+        ptr = sces_mem_pool_alloc(os_mem_pool4, size);
+    }
+
+    return ptr;
+}
+
+/// @brief  Free memory back to the OS memory pool
+/// @details This function frees a previously allocated block of memory back to the OS memory pool.
+/// @param ptr Pointer to the memory block to free
+/// @param size Size of the memory to free in bytes
+void sces_os_free(void* ptr, uint32_t size)
+{
+    if (ptr != NULL)
+    {
+        if ((os_mem_pool1 != NULL) && (size <= SCES_OS_MEM_POOL_BKSZ_1))
+        {
+            sces_mem_pool_free(os_mem_pool1, ptr);
+        }
+        else if ((os_mem_pool2 != NULL) && (size <= SCES_OS_MEM_POOL_BKSZ_2))
+        {
+            sces_mem_pool_free(os_mem_pool2, ptr);
+        }
+        else if ((os_mem_pool3 != NULL) && (size <= SCES_OS_MEM_POOL_BKSZ_3))
+        {
+            sces_mem_pool_free(os_mem_pool3, ptr);
+        }
+        else if ((os_mem_pool4 != NULL) && (size <= SCES_OS_MEM_POOL_BKSZ_4))
+        {
+            sces_mem_pool_free(os_mem_pool4, ptr);
+        }
+    }
 }
 
 /// @brief  Create a new event object
