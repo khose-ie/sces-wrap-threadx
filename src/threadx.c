@@ -48,6 +48,34 @@ static uint8_t EX_OS_STACK_MEM_ZONE[SCES_OS_STACK_SIZE];
 extern uint8_t EX_OS_STACK_MEM_ZONE[SCES_OS_STACK_SIZE];
 #endif // OS_STACK_MEM_ZONE
 
+/// @brief Function pointer for task main function
+static void (*task_main)(void*)      = NULL;
+
+/// @brief Function pointer for timer callback function
+static void (*timer_callback)(void*) = NULL;
+
+/// @brief ThreadX task main wrapper
+/// @details This function serves as the entry point for ThreadX tasks.
+/// @param input Input parameter passed to the task (cast to ULONG)
+static void threadx_task_main(ULONG input)
+{
+    if (task_main != NULL)
+    {
+        (*task_main)((void*)input);
+    }
+}
+
+/// @brief  ThreadX timer callback wrapper
+/// @details This function serves as the callback for ThreadX timers.
+/// @param input Input parameter passed to the timer callback (cast to ULONG)
+static void threadx_timer_callback(ULONG input)
+{
+    if (timer_callback != NULL)
+    {
+        (*timer_callback)((void*)input);
+    }
+}
+
 /// @brief Allocate memory from the OS stack byte pool
 /// @details This function allocates a block of memory of the specified size
 ///          from the OS stack byte pool.
@@ -299,15 +327,15 @@ void sces_event_delete(scesEventHandle_t event)
 /// @return Pointer to the event object's name string
 const uint8_t* sces_event_name(scesEventHandle_t event)
 {
-    char* name = NULL;
+    uint8_t* name = NULL;
 
     if (event == NULL)
     {
         return NULL;
     }
 
-    if (tx_event_flags_info_get((TX_EVENT_FLAGS_GROUP*)event, &name, NULL, NULL, NULL, NULL) !=
-        TX_SUCCESS)
+    if (tx_event_flags_info_get((TX_EVENT_FLAGS_GROUP*)event, (CHAR**)&name, NULL, NULL, NULL,
+                                NULL) != TX_SUCCESS)
     {
         return NULL;
     }
@@ -385,7 +413,6 @@ scesRetVal_t sces_event_put(scesEventHandle_t event, uint32_t flags)
 scesRetVal_t sces_event_wait(scesEventHandle_t event, uint32_t events_value, uint32_t timeout)
 {
     ULONG event_value;
-    UINT tx_status;
 
     if ((event == NULL) || (events_value == SCES_EVENT_NONE))
     {
@@ -437,7 +464,6 @@ scesRetVal_t sces_event_wait_and_clear(scesEventHandle_t event, uint32_t events_
                                        uint32_t* out_events_value, uint32_t timeout)
 {
     ULONG event_value;
-    UINT tx_status;
 
     if ((event == NULL) || (events_value == SCES_EVENT_NONE))
     {
@@ -497,7 +523,7 @@ scesMessageQueueHandle_t sces_mq_create(const uint8_t* name, uint32_t message_si
         return NULL;
     }
 
-    if (tx_queue_create(queue, name, aligned_message_size / sizeof(ULONG), queue_start,
+    if (tx_queue_create(queue, (CHAR*)name, aligned_message_size / sizeof(ULONG), queue_start,
                         message_count) != TX_SUCCESS)
     {
         mem_free((uint8_t*)queue);
@@ -526,7 +552,7 @@ scesMessageQueueHandle_t sces_mq_create_static(const uint8_t* name, uint8_t* mes
         return NULL;
     }
 
-    if (tx_queue_create(queue, name, message_size, (VOID*)message_buffer, message_count) !=
+    if (tx_queue_create(queue, (CHAR*)name, message_size, (VOID*)message_buffer, message_count) !=
         TX_SUCCESS)
     {
         mem_free((uint8_t*)queue);
@@ -541,8 +567,6 @@ scesMessageQueueHandle_t sces_mq_create_static(const uint8_t* name, uint8_t* mes
 /// @param queue Handle to the message queue to be deleted
 void sces_mq_delete(scesMessageQueueHandle_t queue)
 {
-    VOID* queue_start = ((TX_QUEUE*)queue)->tx_queue_start;
-
     if (queue != NULL)
     {
         tx_queue_delete((TX_QUEUE*)queue);
@@ -568,7 +592,7 @@ void sces_mq_delete_static(scesMessageQueueHandle_t queue)
 /// @return Pointer to the message queue's name string
 const uint8_t* sces_mq_name(scesMessageQueueHandle_t queue)
 {
-    char* name = NULL;
+    uint8_t* name = NULL;
 
     if (queue == NULL)
     {
@@ -580,7 +604,8 @@ const uint8_t* sces_mq_name(scesMessageQueueHandle_t queue)
         return NULL;
     }
 
-    if (tx_queue_info_get((TX_QUEUE*)queue, &name, NULL, NULL, NULL, NULL, NULL) != TX_SUCCESS)
+    if (tx_queue_info_get((TX_QUEUE*)queue, (CHAR**)&name, NULL, NULL, NULL, NULL, NULL) !=
+        TX_SUCCESS)
     {
         return NULL;
     }
@@ -820,7 +845,7 @@ void sces_mem_pool_delete_static(scesMemPoolHandle_t pool)
 /// @return Pointer to the memory pool's name string
 const uint8_t* sces_mem_pool_name(scesMemPoolHandle_t pool)
 {
-    char* name = NULL;
+    uint8_t* name = NULL;
 
     if (pool == NULL)
     {
@@ -832,7 +857,7 @@ const uint8_t* sces_mem_pool_name(scesMemPoolHandle_t pool)
         return NULL;
     }
 
-    if (tx_block_pool_info_get((TX_BLOCK_POOL*)pool, &name, NULL, NULL, NULL, NULL, NULL) !=
+    if (tx_block_pool_info_get((TX_BLOCK_POOL*)pool, (CHAR**)&name, NULL, NULL, NULL, NULL, NULL) !=
         TX_SUCCESS)
     {
         return NULL;
@@ -993,7 +1018,7 @@ void sces_mutex_delete(scesMutexHandle_t mutex)
 /// @return Pointer to the mutex's name string
 const uint8_t* sces_mutex_name(scesMutexHandle_t mutex)
 {
-    char* name = NULL;
+    uint8_t* name = NULL;
 
     if (mutex == NULL)
     {
@@ -1005,7 +1030,8 @@ const uint8_t* sces_mutex_name(scesMutexHandle_t mutex)
         return NULL;
     }
 
-    if (tx_mutex_info_get((TX_MUTEX*)mutex, &name, NULL, NULL, NULL, NULL, NULL) != TX_SUCCESS)
+    if (tx_mutex_info_get((TX_MUTEX*)mutex, (CHAR**)&name, NULL, NULL, NULL, NULL, NULL) !=
+        TX_SUCCESS)
     {
         return NULL;
     }
@@ -1130,7 +1156,7 @@ void sces_semaphore_delete(scesSemaphoreHandle_t semaphore)
 /// @return Pointer to the semaphore's name string
 const uint8_t* sces_semaphore_name(scesSemaphoreHandle_t semaphore)
 {
-    char* name = NULL;
+    uint8_t* name = NULL;
 
     if (semaphore == NULL)
     {
@@ -1142,7 +1168,7 @@ const uint8_t* sces_semaphore_name(scesSemaphoreHandle_t semaphore)
         return NULL;
     }
 
-    if (tx_semaphore_info_get((TX_SEMAPHORE*)semaphore, &name, NULL, NULL, NULL, NULL) !=
+    if (tx_semaphore_info_get((TX_SEMAPHORE*)semaphore, (CHAR**)&name, NULL, NULL, NULL, NULL) !=
         TX_SUCCESS)
     {
         return NULL;
@@ -1260,9 +1286,14 @@ scesTaskHandle_t sces_task_create(const uint8_t* name, void (*main)(void*), void
         return NULL;
     }
 
+    if (task_main == NULL)
+    {
+        task_main = main;
+    }
+
     UINT converted_priority = (UINT)(SCES_TASK_PRIORITY_MAX - priority);
 
-    if (tx_thread_create(thread, (CHAR*)name, (VOID (*)(ULONG))main, (ULONG)arg, stack, stack_size,
+    if (tx_thread_create(thread, (CHAR*)name, threadx_task_main, (ULONG)arg, stack, stack_size,
                          (UINT)converted_priority, converted_priority, SCES_OS_DEFAULT_TIME_SLICE,
                          TX_AUTO_START) != TX_SUCCESS)
     {
@@ -1300,9 +1331,14 @@ scesTaskHandle_t sces_task_create_static(const uint8_t* name, void (*main)(void*
         return NULL;
     }
 
+    if (task_main == NULL)
+    {
+        task_main = main;
+    }
+
     UINT converted_priority = (UINT)(SCES_TASK_PRIORITY_MAX - priority);
 
-    if (tx_thread_create(thread, (CHAR*)name, (VOID (*)(ULONG))main, (ULONG)arg, (VOID*)stack,
+    if (tx_thread_create(thread, (CHAR*)name, threadx_task_main, (ULONG)arg, (VOID*)stack,
                          stack_size, (UINT)converted_priority, converted_priority,
                          SCES_OS_DEFAULT_TIME_SLICE, TX_AUTO_START) != TX_SUCCESS)
     {
@@ -1351,7 +1387,7 @@ void sces_task_delete_static(scesTaskHandle_t task)
 /// @return Pointer to the task's name string
 const uint8_t* sces_task_name(scesTaskHandle_t task)
 {
-    char* name = NULL;
+    uint8_t* name = NULL;
 
     if (task == NULL)
     {
@@ -1363,8 +1399,8 @@ const uint8_t* sces_task_name(scesTaskHandle_t task)
         return NULL;
     }
 
-    if (tx_thread_info_get((TX_THREAD*)task, &name, NULL, NULL, NULL, NULL, NULL, NULL, NULL) !=
-        TX_SUCCESS)
+    if (tx_thread_info_get((TX_THREAD*)task, (CHAR**)&name, NULL, NULL, NULL, NULL, NULL, NULL,
+                           NULL) != TX_SUCCESS)
     {
         return NULL;
     }
@@ -1543,7 +1579,12 @@ scesTimerHandle_t sces_timer_create_once(const uint8_t* name, void (*callback)(v
         return NULL;
     }
 
-    if (tx_timer_create(timer, (CHAR*)name, (VOID (*)(ULONG))callback, (ULONG)arg, 1, 0,
+    if (timer_callback == NULL)
+    {
+        timer_callback = callback;
+    }
+
+    if (tx_timer_create(timer, (CHAR*)name, threadx_timer_callback, (ULONG)arg, 1, 0,
                         TX_NO_ACTIVATE) != TX_SUCCESS)
     {
         mem_free((uint8_t*)timer);
@@ -1573,7 +1614,12 @@ scesTimerHandle_t sces_timer_create_periodic(const uint8_t* name, void (*callbac
         return NULL;
     }
 
-    if (tx_timer_create(timer, (CHAR*)name, (VOID (*)(ULONG))callback, (ULONG)arg, 1, 1,
+    if (timer_callback == NULL)
+    {
+        timer_callback = callback;
+    }
+
+    if (tx_timer_create(timer, (CHAR*)name, threadx_timer_callback, (ULONG)arg, 1, 1,
                         TX_NO_ACTIVATE) != TX_SUCCESS)
     {
         mem_free((uint8_t*)timer);
@@ -1600,7 +1646,7 @@ void sces_timer_delete(scesTimerHandle_t timer)
 /// @return Pointer to the timer's name string
 const uint8_t* sces_timer_name(scesTimerHandle_t timer)
 {
-    char* name = NULL;
+    uint8_t* name = NULL;
 
     if (timer == NULL)
     {
@@ -1612,7 +1658,7 @@ const uint8_t* sces_timer_name(scesTimerHandle_t timer)
         return NULL;
     }
 
-    if (tx_timer_info_get((TX_TIMER*)timer, &name, NULL, NULL, NULL, NULL) != TX_SUCCESS)
+    if (tx_timer_info_get((TX_TIMER*)timer, (CHAR**)&name, NULL, NULL, NULL, NULL) != TX_SUCCESS)
     {
         return NULL;
     }
