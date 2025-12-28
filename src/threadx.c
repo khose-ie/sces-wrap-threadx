@@ -512,7 +512,7 @@ void sces_event_delete(scesEventHandle_t event)
 /// @return Pointer to the event object's name string
 const char* sces_event_name(scesEventHandle_t event)
 {
-    uint8_t* name = NULL;
+    char* name = NULL;
 
     if (event == NULL)
     {
@@ -777,7 +777,7 @@ void sces_mq_delete_static(scesMessageQueueHandle_t queue)
 /// @return Pointer to the message queue's name string
 const char* sces_mq_name(scesMessageQueueHandle_t queue)
 {
-    uint8_t* name = NULL;
+    char* name = NULL;
 
     if (queue == NULL)
     {
@@ -1030,7 +1030,7 @@ void sces_mem_pool_delete_static(scesMemPoolHandle_t pool)
 /// @return Pointer to the memory pool's name string
 const char* sces_mem_pool_name(scesMemPoolHandle_t pool)
 {
-    uint8_t* name = NULL;
+    char* name = NULL;
 
     if (pool == NULL)
     {
@@ -1203,7 +1203,7 @@ void sces_mutex_delete(scesMutexHandle_t mutex)
 /// @return Pointer to the mutex's name string
 const char* sces_mutex_name(scesMutexHandle_t mutex)
 {
-    uint8_t* name = NULL;
+    char* name = NULL;
 
     if (mutex == NULL)
     {
@@ -1341,7 +1341,7 @@ void sces_semaphore_delete(scesSemaphoreHandle_t semaphore)
 /// @return Pointer to the semaphore's name string
 const char* sces_semaphore_name(scesSemaphoreHandle_t semaphore)
 {
-    uint8_t* name = NULL;
+    char* name = NULL;
 
     if (semaphore == NULL)
     {
@@ -1572,7 +1572,7 @@ void sces_task_delete_static(scesTaskHandle_t task)
 /// @return Pointer to the task's name string
 const char* sces_task_name(scesTaskHandle_t task)
 {
-    uint8_t* name = NULL;
+    char* name = NULL;
 
     if (task == NULL)
     {
@@ -1830,7 +1830,7 @@ void sces_timer_delete(scesTimerHandle_t timer)
 /// @return Pointer to the timer's name string
 const char* sces_timer_name(scesTimerHandle_t timer)
 {
-    uint8_t* name = NULL;
+    char* name = NULL;
 
     if (timer == NULL)
     {
