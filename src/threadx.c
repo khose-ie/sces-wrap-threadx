@@ -83,6 +83,9 @@ static scesOsState_t os_state = SCES_OS_STATE_INITIALIZING;
 #define OS_STACK_POOL (os_stack)
 static TX_BYTE_POOL OS_STACK_POOL;
 #else // SCES_OS_EX_STACK_POOL
+#ifndef SCES_OS_EX_STACK_ZONE
+#define SCES_OS_EX_STACK_ZONE
+#endif // SCES_OS_EX_STACK_ZONE
 #define OS_STACK_POOL SCES_OS_EX_STACK_POOL
 extern TX_BYTE_POOL OS_STACK_POOL;
 #endif // SCES_OS_EX_STACK_POOL
@@ -94,8 +97,10 @@ extern TX_BYTE_POOL OS_STACK_POOL;
 #define OS_STACK_MEM_ZONE (os_stack_zone)
 static uint8_t OS_STACK_MEM_ZONE[SCES_OS_STACK_SIZE];
 #else // SCES_OS_EX_STACK_ZONE
+#ifndef SCES_OS_EX_STACK_POOL
 #define OS_STACK_MEM_ZONE SCES_OS_EX_STACK_ZONE
 extern uint8_t OS_STACK_MEM_ZONE[SCES_OS_STACK_SIZE];
+#endif // SCES_OS_EX_STACK_POOL
 #endif // SCES_OS_EX_STACK_ZONE
 
 /// @brief Function pointer for task main function
@@ -237,13 +242,19 @@ static scesTaskPriority_t convert_threadx_task_priority(UINT threadx_priority)
 /// @return SCES_RET_OK on success, error code otherwise
 scesRetVal_t sces_os_initialize(void)
 {
-    memset(OS_STACK_MEM_ZONE, 0, SCES_OS_STACK_SIZE);
-
     if (SCES_OS_STACK_SIZE < TX_BYTE_POOL_MIN)
     {
         os_state = SCES_OS_STATE_ERR_INIT_MEM;
         return SCES_RET_PARAM_ERR;
     }
+
+#ifndef SCES_OS_EX_STACK_ZONE
+
+    memset(OS_STACK_MEM_ZONE, 0, SCES_OS_STACK_SIZE);
+
+#endif // SCES_OS_EX_STACK_ZONE
+
+#ifndef SCES_OS_EX_STACK_POOL
 
     if (tx_byte_pool_create(&OS_STACK_POOL, "OS Stack", OS_STACK_MEM_ZONE, SCES_OS_STACK_SIZE) !=
         TX_SUCCESS)
@@ -251,6 +262,8 @@ scesRetVal_t sces_os_initialize(void)
         os_state = SCES_OS_STATE_ERR_INIT_MEM;
         return SCES_RET_OS_MEM_POOL_ERR;
     }
+
+#endif // SCES_OS_EX_STACK_POOL
 
     os_state = SCES_OS_STATE_RUNNING;
     return SCES_RET_OK;
