@@ -242,14 +242,14 @@ scesRetVal_t sces_os_initialize(void)
     if (SCES_OS_STACK_SIZE < TX_BYTE_POOL_MIN)
     {
         os_state = SCES_OS_STATE_ERR_INIT_MEM;
-        return SCES_RET_ERR_PARAM;
+        return SCES_RET_PARAM_ERR;
     }
 
     if (tx_byte_pool_create(&OS_STACK_POOL, "OS Stack", OS_STACK_MEM_ZONE, SCES_OS_STACK_SIZE) !=
         TX_SUCCESS)
     {
         os_state = SCES_OS_STATE_ERR_INIT_MEM;
-        return SCES_RET_ERR_MEM_ALLOC_FAILURE;
+        return SCES_RET_OS_MEM_POOL_ERR;
     }
 
     os_state = SCES_OS_STATE_RUNNING;
@@ -270,7 +270,7 @@ scesRetVal_t sces_os_initialize_mem_pool(void)
                                                SCES_OS_MEM_POOL_BKSZ_1, SCES_OS_MEM_POOL_BKCT_1);
     if (os_mem_pool1 == NULL)
     {
-        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+        return SCES_RET_OS_MEM_POOL_ERR;
     }
 
 #endif // SCES_OS_MEM_POOL_BKSZ_1 != 0 && SCES_OS_MEM_POOL_BKCT_1 != 0
@@ -283,7 +283,7 @@ scesRetVal_t sces_os_initialize_mem_pool(void)
                                                SCES_OS_MEM_POOL_BKSZ_2, SCES_OS_MEM_POOL_BKCT_2);
     if (os_mem_pool2 == NULL)
     {
-        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+        return SCES_RET_OS_MEM_POOL_ERR;
     }
 
 #endif // SCES_OS_MEM_POOL_BKSZ_2 != 0 && SCES_OS_MEM_POOL_BKCT_2 != 0
@@ -296,7 +296,7 @@ scesRetVal_t sces_os_initialize_mem_pool(void)
                                                SCES_OS_MEM_POOL_BKSZ_3, SCES_OS_MEM_POOL_BKCT_3);
     if (os_mem_pool3 == NULL)
     {
-        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+        return SCES_RET_OS_MEM_POOL_ERR;
     }
 
 #endif // SCES_OS_MEM_POOL_BKSZ_3 != 0 && SCES_OS_MEM_POOL_BKCT_3 != 0
@@ -309,7 +309,7 @@ scesRetVal_t sces_os_initialize_mem_pool(void)
                                                SCES_OS_MEM_POOL_BKSZ_4, SCES_OS_MEM_POOL_BKCT_4);
     if (os_mem_pool4 == NULL)
     {
-        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+        return SCES_RET_OS_MEM_POOL_ERR;
     }
 
 #endif // SCES_OS_MEM_POOL_BKSZ_4 != 0 && SCES_OS_MEM_POOL_BKCT_4 != 0
@@ -561,23 +561,23 @@ scesRetVal_t sces_event_put(scesEventHandle_t event, uint32_t flags)
 
     if (event == NULL)
     {
-        return SCES_RET_ERR_NULL_REF;
+        return SCES_RET_NULL_REF;
     }
 
     if (((TX_EVENT_FLAGS_GROUP*)event)->tx_event_flags_group_id != TX_EVENT_FLAGS_ID)
     {
-        return SCES_RET_ERR_PARAM;
+        return SCES_RET_PARAM_ERR;
     }
 
     if (tx_event_flags_set((TX_EVENT_FLAGS_GROUP*)event, (ULONG)flags, TX_OR) != TX_SUCCESS)
     {
-        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+        return SCES_RET_OS_EVENT_ERR;
     }
 
     if (tx_event_flags_info_get((TX_EVENT_FLAGS_GROUP*)event, NULL, &events_state, NULL, NULL,
                                 NULL) != TX_SUCCESS)
     {
-        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+        return SCES_RET_OS_EVENT_ERR;
     }
 
     return SCES_RET_OK;
@@ -596,23 +596,23 @@ scesRetVal_t sces_event_wait(scesEventHandle_t event, uint32_t events_value, uin
 
     if ((event == NULL) || (events_value == SCES_EVENT_NONE))
     {
-        return SCES_RET_ERR_NULL_REF;
+        return SCES_RET_NULL_REF;
     }
 
     if (((TX_EVENT_FLAGS_GROUP*)event)->tx_event_flags_group_id != TX_EVENT_FLAGS_ID)
     {
-        return SCES_RET_ERR_PARAM;
+        return SCES_RET_PARAM_ERR;
     }
 
     if (tx_event_flags_get((TX_EVENT_FLAGS_GROUP*)event, (ULONG)events_value, TX_OR, &event_value,
                            (ULONG)timeout) != TX_SUCCESS)
     {
-        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+        return SCES_RET_OS_EVENT_ERR;
     }
 
     if ((event_value & events_value) == SCES_EVENT_NONE)
     {
-        return SCES_RET_ERR_TIMEOUT;
+        return SCES_RET_OS_EVENT_ERR;
     }
 
     return SCES_RET_OK;
@@ -647,23 +647,23 @@ scesRetVal_t sces_event_wait_and_clear(scesEventHandle_t event, uint32_t events_
 
     if ((event == NULL) || (events_value == SCES_EVENT_NONE))
     {
-        return SCES_RET_ERR_NULL_REF;
+        return SCES_RET_NULL_REF;
     }
 
     if (((TX_EVENT_FLAGS_GROUP*)event)->tx_event_flags_group_id != TX_EVENT_FLAGS_ID)
     {
-        return SCES_RET_ERR_PARAM;
+        return SCES_RET_PARAM_ERR;
     }
 
     if (tx_event_flags_get((TX_EVENT_FLAGS_GROUP*)event, (ULONG)events_value, TX_OR, &event_value,
                            (ULONG)timeout) != TX_SUCCESS)
     {
-        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+        return SCES_RET_OS_EVENT_ERR;
     }
 
     if ((event_value & events_value) == SCES_EVENT_NONE)
     {
-        return SCES_RET_ERR_TIMEOUT;
+        return SCES_RET_OS_EVENT_ERR;
     }
 
     if (out_events_value != NULL)
@@ -866,17 +866,17 @@ scesRetVal_t sces_mq_send(scesMessageQueueHandle_t queue, const void* message, u
 {
     if ((queue == NULL) || (message == NULL))
     {
-        return SCES_RET_ERR_NULL_REF;
+        return SCES_RET_NULL_REF;
     }
 
     if (((TX_QUEUE*)queue)->tx_queue_id != TX_QUEUE_ID)
     {
-        return SCES_RET_ERR_PARAM;
+        return SCES_RET_PARAM_ERR;
     }
 
     if (tx_queue_send((TX_QUEUE*)queue, (VOID*)message, (ULONG)timeout) != TX_SUCCESS)
     {
-        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+        return SCES_RET_OS_MQ_ERR;
     }
 
     return SCES_RET_OK;
@@ -893,17 +893,17 @@ scesRetVal_t sces_mq_receive(scesMessageQueueHandle_t queue, void* message, uint
 {
     if ((queue == NULL) || (message == NULL))
     {
-        return SCES_RET_ERR_NULL_REF;
+        return SCES_RET_NULL_REF;
     }
 
     if (((TX_QUEUE*)queue)->tx_queue_id != TX_QUEUE_ID)
     {
-        return SCES_RET_ERR_PARAM;
+        return SCES_RET_PARAM_ERR;
     }
 
     if (tx_queue_receive((TX_QUEUE*)queue, message, (ULONG)timeout) != TX_SUCCESS)
     {
-        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+        return SCES_RET_OS_MQ_ERR;
     }
 
     return SCES_RET_OK;
@@ -1256,17 +1256,17 @@ scesRetVal_t sces_mutex_lock(scesMutexHandle_t mutex, uint32_t timeout)
 {
     if (mutex == NULL)
     {
-        return SCES_RET_ERR_NULL_REF;
+        return SCES_RET_NULL_REF;
     }
 
     if (((TX_MUTEX*)mutex)->tx_mutex_id != TX_MUTEX_ID)
     {
-        return SCES_RET_ERR_PARAM;
+        return SCES_RET_PARAM_ERR;
     }
 
     if (tx_mutex_get((TX_MUTEX*)mutex, (ULONG)timeout) != TX_SUCCESS)
     {
-        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+        return SCES_RET_OS_MUTEX_ERR;
     }
 
     return SCES_RET_OK;
@@ -1280,17 +1280,17 @@ scesRetVal_t sces_mutex_unlock(scesMutexHandle_t mutex)
 {
     if (mutex == NULL)
     {
-        return SCES_RET_ERR_NULL_REF;
+        return SCES_RET_NULL_REF;
     }
 
     if (((TX_MUTEX*)mutex)->tx_mutex_id != TX_MUTEX_ID)
     {
-        return SCES_RET_ERR_PARAM;
+        return SCES_RET_PARAM_ERR;
     }
 
     if (tx_mutex_put((TX_MUTEX*)mutex) != TX_SUCCESS)
     {
-        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+        return SCES_RET_OS_MUTEX_ERR;
     }
 
     return SCES_RET_OK;
@@ -1394,17 +1394,17 @@ scesRetVal_t sces_semaphore_take(scesSemaphoreHandle_t semaphore, uint32_t timeo
 {
     if (semaphore == NULL)
     {
-        return SCES_RET_ERR_NULL_REF;
+        return SCES_RET_NULL_REF;
     }
 
     if (((TX_SEMAPHORE*)semaphore)->tx_semaphore_id != TX_SEMAPHORE_ID)
     {
-        return SCES_RET_ERR_PARAM;
+        return SCES_RET_PARAM_ERR;
     }
 
     if (tx_semaphore_get((TX_SEMAPHORE*)semaphore, (ULONG)timeout) != TX_SUCCESS)
     {
-        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+        return SCES_RET_OS_SEMAPHORE_ERR;
     }
 
     return SCES_RET_OK;
@@ -1418,17 +1418,17 @@ scesRetVal_t sces_semaphore_release(scesSemaphoreHandle_t semaphore)
 {
     if (semaphore == NULL)
     {
-        return SCES_RET_ERR_NULL_REF;
+        return SCES_RET_NULL_REF;
     }
 
     if (((TX_SEMAPHORE*)semaphore)->tx_semaphore_id != TX_SEMAPHORE_ID)
     {
-        return SCES_RET_ERR_PARAM;
+        return SCES_RET_PARAM_ERR;
     }
 
     if (tx_semaphore_put((TX_SEMAPHORE*)semaphore) != TX_SUCCESS)
     {
-        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+        return SCES_RET_OS_SEMAPHORE_ERR;
     }
 
     return SCES_RET_OK;
@@ -1674,12 +1674,12 @@ scesRetVal_t sces_task_set_priority(scesTaskHandle_t task, scesTaskPriority_t pr
 
     if (task == NULL)
     {
-        return SCES_RET_ERR_NULL_REF;
+        return SCES_RET_NULL_REF;
     }
 
     if (((TX_THREAD*)task)->tx_thread_id != TX_THREAD_ID)
     {
-        return SCES_RET_ERR_INSTANCE_INVALID;
+        return SCES_RET_INSTANCE_UNAVAILABLE;
     }
 
     converted_priority = (UINT)(SCES_TASK_PRIORITY_MAX - priority);
@@ -1687,7 +1687,7 @@ scesRetVal_t sces_task_set_priority(scesTaskHandle_t task, scesTaskPriority_t pr
     if (tx_thread_priority_change((TX_THREAD*)task, converted_priority, &current_priority) !=
         TX_SUCCESS)
     {
-        return SCES_RET_ERR_UNKNOWN;
+        return SCES_RET_OS_TASK_ERR;
     }
 
     return SCES_RET_OK;
@@ -1700,17 +1700,17 @@ scesRetVal_t sces_task_suspend(scesTaskHandle_t task)
 {
     if (task == NULL)
     {
-        return SCES_RET_ERR_NULL_REF;
+        return SCES_RET_NULL_REF;
     }
 
     if (((TX_THREAD*)task)->tx_thread_id != TX_THREAD_ID)
     {
-        return SCES_RET_ERR_INSTANCE_INVALID;
+        return SCES_RET_INSTANCE_UNAVAILABLE;
     }
 
     if (tx_thread_suspend((TX_THREAD*)task) != TX_SUCCESS)
     {
-        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+        return SCES_RET_OS_TASK_ERR;
     }
 
     return SCES_RET_OK;
@@ -1723,17 +1723,17 @@ scesRetVal_t sces_task_resume(scesTaskHandle_t task)
 {
     if (task == NULL)
     {
-        return SCES_RET_ERR_NULL_REF;
+        return SCES_RET_NULL_REF;
     }
 
     if (((TX_THREAD*)task)->tx_thread_id != TX_THREAD_ID)
     {
-        return SCES_RET_ERR_INSTANCE_INVALID;
+        return SCES_RET_INSTANCE_UNAVAILABLE;
     }
 
     if (tx_thread_resume((TX_THREAD*)task) != TX_SUCCESS)
     {
-        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+        return SCES_RET_OS_TASK_ERR;
     }
 
     return SCES_RET_OK;
@@ -1885,37 +1885,37 @@ scesRetVal_t sces_timer_start(scesTimerHandle_t timer, uint32_t timeout)
 {
     if (timer == NULL)
     {
-        return SCES_RET_ERR_NULL_REF;
+        return SCES_RET_NULL_REF;
     }
 
     if (((TX_TIMER*)timer)->tx_timer_id != TX_TIMER_ID)
     {
-        return SCES_RET_ERR_PARAM;
+        return SCES_RET_PARAM_ERR;
     }
 
     UINT active;
 
     if (tx_timer_info_get((TX_TIMER*)timer, NULL, &active, NULL, NULL, NULL) != TX_SUCCESS)
     {
-        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+        return SCES_RET_OS_TIMER_ERR;
     }
 
     if (active)
     {
         if (tx_timer_deactivate((TX_TIMER*)timer) != TX_SUCCESS)
         {
-            return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+            return SCES_RET_OS_TIMER_ERR;
         }
     }
 
     if (tx_timer_change((TX_TIMER*)timer, (ULONG)timeout, (ULONG)timeout) != TX_SUCCESS)
     {
-        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+        return SCES_RET_OS_TIMER_ERR;
     }
 
     if (tx_timer_activate((TX_TIMER*)timer) != TX_SUCCESS)
     {
-        return SCES_RET_ERR_LOW_LEVEL_FAILURE;
+        return SCES_RET_OS_TIMER_ERR;
     }
 
     return SCES_RET_OK;
