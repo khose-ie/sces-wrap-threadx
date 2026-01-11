@@ -150,9 +150,9 @@ static uint8_t* mem_alloc(uint32_t size)
         return NULL;
     }
 
-    if (size < TX_BYTE_POOL_MIN)
+    if (size < TX_BYTE_BLOCK_MIN)
     {
-        alloc_size = TX_BYTE_POOL_MIN;
+        alloc_size = TX_BYTE_BLOCK_MIN;
     }
 
     if (tx_byte_allocate(&OS_STACK_POOL, (VOID**)&mem, alloc_size, TX_NO_WAIT) != TX_SUCCESS)
